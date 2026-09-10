@@ -1,110 +1,193 @@
-# Residual Networks (ResNet-50) for Image Classification
+# 🧠 ResNet-50 Image Classification
 
-A from-scratch implementation of a **ResNet-50** architecture using TensorFlow/Keras, built to understand how residual learning, skip connections, identity blocks, and convolutional blocks enable the training of deep convolutional neural networks.
+A TensorFlow/Keras implementation of a **50-layer Residual Network (ResNet-50)** for multi-class hand-sign image classification using the **SIGNS dataset**.
 
-> This project was developed as part of my deep learning learning journey, with educational guidance and inspiration from Professor Andrew Ng's deep learning coursework.
+This project focuses on understanding how residual learning and skip connections make very deep convolutional neural networks easier to train.
+
+> This project was also part of my learning journey inspired and guided by the educational work of **Professor Andrew Ng**.
+
+---
 
 ## 📌 Overview
 
-Very deep neural networks can represent increasingly complex functions, but training them becomes difficult because of problems such as **vanishing gradients**.
+As neural networks become deeper, they can learn increasingly complex representations. However, simply adding more layers can make optimization difficult, especially because of the **vanishing gradient problem**.
 
-Residual Networks (ResNets), introduced by He et al., address this challenge through **shortcut/skip connections**. Instead of forcing every block to learn a completely new transformation, the network can learn a residual mapping while directly passing information through the shortcut.
+Residual Networks address this challenge with **shortcut (skip) connections**. Instead of requiring every layer to learn a completely new transformation, a residual block can pass information directly through a shortcut while the main path learns a residual mapping.
 
-In this project, I implemented the core components of ResNet-50 and trained the resulting model on the **SIGNS dataset**, a six-class hand-sign image classification dataset.
+In this project, I implemented the main components of a ResNet-50:
+
+- Identity residual blocks
+- Convolutional residual blocks
+- Shortcut connections
+- Batch Normalization
+- The complete 50-layer ResNet architecture
+- Multi-class image classification with Softmax
+- Model evaluation on the SIGNS test set
+- Custom image inference
+
+---
 
 ## 🎯 Project Goals
 
+The main goals of this project were to:
+
 - Understand why very deep neural networks can be difficult to train.
-- Implement residual learning using skip connections.
-- Build both major ResNet block types:
-  - Identity block
-  - Convolutional block
-- Assemble those blocks into a **50-layer ResNet architecture**.
-- Train the model for multi-class image classification.
-- Evaluate the model on unseen test images.
-- Test the trained network on an individual image.
+- Understand the vanishing gradient problem.
+- Learn how residual/skip connections work.
+- Implement an **identity block**.
+- Implement a **convolutional block**.
+- Assemble those blocks into a **ResNet-50** architecture.
+- Train the network for image classification.
+- Evaluate the trained model on unseen data.
+- Experiment with predictions on personal images.
 
-## 🧠 Key Concepts
+---
 
-### The Vanishing Gradient Problem
+## 📚 Table of Contents
 
-As networks become deeper, gradients can become extremely small during backpropagation. This can make the early layers learn very slowly.
+- [The Problem of Very Deep Neural Networks](#-the-problem-of-very-deep-neural-networks)
+- [Residual Networks](#-residual-networks)
+- [Identity Block](#-identity-block)
+- [Convolutional Block](#-convolutional-block)
+- [ResNet-50 Architecture](#-resnet-50-architecture)
+- [SIGNS Dataset](#-signs-dataset)
+- [Training](#-training)
+- [Results](#-results)
+- [Custom Image Prediction](#-custom-image-prediction)
+- [What I Learned](#-what-i-learned)
+- [Project Structure](#-project-structure)
+- [Technologies](#-technologies)
+- [Getting Started](#-getting-started)
+- [References](#-references)
+- [Contributing](#-contributing)
+- [Author](#-author)
+- [Acknowledgments](#-acknowledgments)
+- [License](#-license)
 
-Residual connections provide a direct path through the network, helping information and gradients flow through deep architectures.
+---
 
-### Skip Connections
+# 🔍 The Problem of Very Deep Neural Networks
 
-A residual block contains:
+Very deep networks can represent complex functions and learn features at different levels of abstraction.
 
-```text
-                ┌──────────────────────────────┐
-                │                              │
-Input ──────────┴──────► Main Path ───────► Add ───► ReLU
-  │                                           ▲
-  └────────────── Shortcut / Skip ────────────┘
-```
+However, increasing depth does not automatically make a network easier to train.
 
-The output combines the transformed main path with the shortcut:
+One important challenge is the **vanishing gradient problem**. During backpropagation, gradients can become extremely small as they move toward earlier layers. When this happens, the shallower layers learn very slowly.
+
+<p align="center">
+  <img src="images/vanishing_grad_kiank.png" alt="Vanishing gradient illustration" width="650">
+</p>
+
+This project addresses that problem by building a **Residual Network**.
+
+---
+
+# 🔗 Residual Networks
+
+A ResNet introduces a **shortcut, or skip connection**, that allows information to bypass part of the main network path.
+
+<p align="center">
+  <img src="images/skip_connection_kiank.png" alt="Residual skip connection" width="700">
+</p>
+
+Instead of learning only a transformation through the main path, the block combines the main path with the shortcut:
 
 ```text
 Output = ReLU(Main Path + Shortcut)
 ```
 
-This structure makes it easier for a block to learn an identity mapping when that is useful.
+By stacking residual blocks, we can construct very deep networks while making optimization more practical.
 
-## 🧱 ResNet Building Blocks
+A key idea is that the network can learn an **identity mapping** when that is useful, allowing additional residual blocks to be stacked without requiring every block to learn a completely new representation.
 
-### 1. Identity Block
+---
 
-The identity block is used when the input and output dimensions match.
+# 🧱 Identity Block
 
-The main path follows:
+The **identity block** is used when the input and output dimensions are compatible, so the shortcut can pass the original activation directly to the addition operation.
+
+<p align="center">
+  <img src="images/idblock2_kiank.png" alt="Identity residual block" width="800">
+</p>
+
+The implementation used in this project contains three convolutional components:
 
 ```text
-CONV 1×1 → BatchNorm → ReLU
-        ↓
-CONV f×f → BatchNorm → ReLU
-        ↓
-CONV 1×1 → BatchNorm
+1×1 Conv → BatchNorm → ReLU
+      ↓
+f×f Conv → BatchNorm → ReLU
+      ↓
+1×1 Conv → BatchNorm
 ```
 
-The original input is then added back:
+The original input is then added to the main path:
 
 ```text
 Main Path + Shortcut → ReLU
 ```
 
-The implementation uses:
+The middle convolution uses an `f × f` kernel, while the first and third convolutions use `1 × 1` kernels.
 
-- 1×1 convolution
-- f×f convolution
-- 1×1 convolution
-- Batch Normalization
-- ReLU activation
-- Add layer for the shortcut connection
+The notebook also illustrates the three-layer identity block:
 
-### 2. Convolutional Block
+<p align="center">
+  <img src="images/idblock3_kiank.png" alt="Three-layer identity block" width="800">
+</p>
 
-The convolutional block is used when the input and output dimensions need to change.
+### Identity Block Configuration
 
-Unlike the identity block, the shortcut path contains a **1×1 convolution** and Batch Normalization so that its dimensions match the main path before addition.
+- First convolution: `1 × 1`
+- First stride: `(1, 1)`
+- First padding: `valid`
+- Second convolution: `f × f`
+- Second stride: `(1, 1)`
+- Second padding: `same`
+- Third convolution: `1 × 1`
+- Third padding: `valid`
+- Batch Normalization after each convolution
+- ReLU after the first two convolutions
+- No ReLU before the final addition
+- Shortcut added to the main path
+- Final ReLU after the addition
 
-The stride can also be used to reduce spatial dimensions.
+---
 
-## 🏗️ ResNet-50 Architecture
+# 🔄 Convolutional Block
 
-The implemented network follows the classic stage-based ResNet-50 structure:
+The **convolutional block** is used when the dimensions of the activation need to change.
+
+Unlike the identity block, its shortcut path contains a convolution and Batch Normalization so that the shortcut can be added to the main path.
+
+<p align="center">
+  <img src="images/convblock_kiank.png" alt="Convolutional residual block" width="900">
+</p>
+
+The convolutional block also uses a stride that can reduce the spatial dimensions of the feature maps.
+
+This makes the block useful at transitions between ResNet stages.
+
+---
+
+# 🏗️ ResNet-50 Architecture
+
+The complete model is constructed by stacking convolutional and identity residual blocks in stages.
+
+<p align="center">
+  <img src="images/resnet_kiank.png" alt="ResNet-50 architecture" width="950">
+</p>
+
+The architecture implemented in the notebook follows this structure:
 
 ```text
-Input (64×64×3)
+Input (64 × 64 × 3)
         │
-Zero Padding
+Zero Padding (3 × 3)
         │
-7×7 Conv, 64 filters, stride 2
+7 × 7 Conv, 64 filters, stride 2
         │
 BatchNorm → ReLU
         │
-3×3 MaxPool, stride 2
+3 × 3 MaxPool, stride 2
         │
         ▼
 Stage 2
@@ -136,157 +219,265 @@ Dense → 6 classes
 Softmax
 ```
 
-The notebook implements the architecture using the Keras Functional API.
-
 ### Architecture Summary
 
-| Component | Configuration |
+| Stage | Configuration |
 |---|---|
 | Input | `(64, 64, 3)` |
-| Initial Conv | 64 filters, 7×7, stride 2 |
-| Max Pool | 3×3, stride 2 |
-| Stage 2 | [64, 64, 256] + 2 identity blocks |
-| Stage 3 | [128, 128, 512] + 3 identity blocks |
-| Stage 4 | [256, 256, 1024] + 5 identity blocks |
-| Stage 5 | [512, 512, 2048] + 2 identity blocks |
-| Final Pooling | Average Pooling |
+| Initial padding | `3 × 3` |
+| Initial convolution | `64 filters, 7 × 7, stride 2` |
+| Max Pooling | `3 × 3, stride 2` |
+| Stage 2 | Conv Block `[64, 64, 256]` + 2 Identity Blocks |
+| Stage 3 | Conv Block `[128, 128, 512]` + 3 Identity Blocks |
+| Stage 4 | Conv Block `[256, 256, 1024]` + 5 Identity Blocks |
+| Stage 5 | Conv Block `[512, 512, 2048]` + 2 Identity Blocks |
+| Final pooling | Average Pooling |
 | Classifier | Dense layer |
 | Output | 6 classes with Softmax |
 
-## 📊 Dataset
+---
 
-The project uses the **SIGNS dataset**.
+# 🖐️ SIGNS Dataset
+
+The model is trained and evaluated using the **SIGNS dataset**, which contains hand-sign images belonging to six classes.
+
+<p align="center">
+  <img src="images/signs_data_kiank.png" alt="SIGNS dataset examples" width="650">
+</p>
 
 The notebook reports:
 
 - **1,080 training examples**
 - **120 test examples**
-- Image shape: **64 × 64 × 3**
-- **6 target classes**
+- Image dimensions: **64 × 64 × 3**
+- **6 classes**
 
-The image vectors are normalized by dividing pixel values by `255`.
+### Preprocessing
 
-Labels are converted into one-hot encoded matrices for categorical classification.
+Pixel values are normalized by dividing by `255`:
 
 ```python
 X_train = X_train_orig / 255.
 X_test = X_test_orig / 255.
+```
 
+The labels are converted to one-hot encoded matrices for multi-class classification:
+
+```python
 Y_train = convert_to_one_hot(Y_train_orig, 6).T
 Y_test = convert_to_one_hot(Y_test_orig, 6).T
 ```
 
-## ⚙️ Training
+The resulting shapes are:
 
-The model is compiled with:
+```text
+X_train: (1080, 64, 64, 3)
+Y_train: (1080, 6)
+
+X_test:  (120, 64, 64, 3)
+Y_test:  (120, 6)
+```
+
+---
+
+# ⚙️ Training
+
+The model was compiled using the Adam optimizer and categorical cross-entropy loss.
 
 ```python
-optimizer = tf.keras.optimizers.Adam(learning_rate=0.00015)
+opt = tf.keras.optimizers.Adam(learning_rate=0.00015)
 
 model.compile(
-    optimizer=optimizer,
+    optimizer=opt,
     loss='categorical_crossentropy',
     metrics=['accuracy']
 )
 ```
 
-Training configuration:
+### Training Configuration
 
-- Epochs: **10**
-- Batch size: **32**
-- Optimizer: **Adam**
-- Learning rate: **0.00015**
-- Loss: **Categorical Cross-Entropy**
-- Metric: **Accuracy**
+| Parameter | Value |
+|---|---|
+| Optimizer | Adam |
+| Learning rate | `0.00015` |
+| Loss | Categorical Cross-Entropy |
+| Metric | Accuracy |
+| Epochs | 10 |
+| Batch size | 32 |
 
-## 📈 Results
+The model was trained for 10 epochs.
 
-The model trained for 10 epochs on the SIGNS training set.
+---
 
-### Training Progress
+# 📈 Results
 
-The recorded training run reached:
+## Training Results
 
-- **Epoch 1:** 31.48% accuracy, loss 1.8572
-- **Epoch 5:** 88.06% accuracy, loss 0.3193
-- **Epoch 10:** **94.17% accuracy**, loss 0.1647
+The recorded training run showed a strong improvement in accuracy over the 10 epochs:
 
-The training loss generally decreased while accuracy increased throughout training.
+| Epoch | Training Loss | Training Accuracy |
+|---:|---:|---:|
+| 1 | 1.8572 | 31.48% |
+| 2 | 1.2479 | 52.69% |
+| 3 | 0.8012 | 69.72% |
+| 4 | 0.4625 | 84.35% |
+| 5 | 0.3193 | 88.06% |
+| 6 | 0.2178 | 92.31% |
+| 7 | 0.2396 | 91.76% |
+| 8 | 0.2039 | 93.15% |
+| 9 | 0.2013 | 92.50% |
+| 10 | **0.1647** | **94.17%** |
 
-### Test Performance
+The training accuracy increased from **31.48% to 94.17%**, while the loss decreased substantially.
 
-On the 120-example test set, the recorded run achieved:
+## Test Set Performance
+
+After training for 10 epochs, the model achieved:
 
 | Metric | Result |
 |---|---:|
 | Test Loss | **1.0717** |
 | Test Accuracy | **75.83%** |
 
-The notebook also evaluates a separately provided pretrained ResNet-50 model trained for more iterations. That model achieved:
+The difference between training and test performance is an important reminder that strong training accuracy does not necessarily translate directly to the same performance on unseen data.
+
+---
+
+# 🚀 Extended Pretrained Model
+
+The notebook also provides a separately trained `resnet50.h5` model.
+
+This model was trained for more iterations using GPU-based training and is evaluated separately from the 10-epoch training run above.
+
+Its recorded test performance was:
 
 | Metric | Result |
 |---|---:|
 | Test Loss | **0.1596** |
 | Test Accuracy | **95.00%** |
 
-The two results should not be treated as the same training run: the first is the model trained in the notebook for 10 epochs, while the second comes from the separately loaded `resnet50.h5` model.
+> **Important:** The **75.83%** result is the test accuracy of the model trained for 10 epochs in the notebook. The **95.00%** result comes from the separately loaded pretrained `resnet50.h5` model. They should not be treated as the same training run.
 
-## 🔍 Testing on a Custom Image
+---
 
-The notebook includes an optional workflow for testing the trained model on a user's own image.
+# 🧪 Model Verification
+
+The implementation was checked using the provided testing utilities.
+
+The notebook reports successful verification for the residual blocks:
+
+```text
+All tests passed!
+```
+
+The complete ResNet-50 architecture was also compared against the provided reference model summary and passed the supplied verification.
+
+This helped confirm that the implemented:
+
+- `identity_block`
+- `convolutional_block`
+- `ResNet50`
+
+followed the expected architecture.
+
+---
+
+# 📷 Custom Image Prediction
+
+The notebook includes an optional workflow for testing the pretrained model on a personal image.
 
 The image is:
 
 1. Loaded from the `images/` directory.
 2. Resized to `64 × 64`.
-3. Converted to an array.
-4. Expanded to a batch dimension.
+3. Converted into an array.
+4. Expanded to include a batch dimension.
 5. Normalized by dividing by `255`.
-6. Passed through the pretrained model.
+6. Passed through the pretrained ResNet-50.
 7. Classified using the class with the highest predicted probability.
 
 Example:
 
 ```python
 img_path = 'images/my_image.jpg'
+
+img = image.load_img(
+    img_path,
+    target_size=(64, 64)
+)
+
+x = image.img_to_array(img)
+x = np.expand_dims(x, axis=0)
+x = x / 255.0
+
+prediction = pre_trained_model.predict(x)
+print("Class:", np.argmax(prediction))
 ```
 
-The notebook's example prediction produced:
+### Example Prediction
+
+For the example image used in the notebook, the model produced:
 
 ```text
 Class: 2
 ```
 
-It also demonstrates an important practical lesson: high test accuracy on a benchmark dataset does not guarantee equally strong performance on images captured under different conditions. Image shape, lighting, and preprocessing can create a distribution shift between the training data and real-world images.
-
-## 🧪 Model Verification
-
-The implementation was checked using the provided testing utilities.
-
-The notebook reports:
+The prediction vector was:
 
 ```text
-All tests passed!
+[p(0), p(1), p(2), p(3), p(4), p(5)]
 ```
 
-for both:
+with the highest probability assigned to **class 2**.
 
-- `identity_block`
-- `convolutional_block`
+<p align="center">
+  <img src="images/my_image.jpg" alt="Example custom hand-sign image" width="280">
+</p>
 
-The completed ResNet-50 implementation was also compared against the provided reference summary and passed the supplied verification.
+---
 
-## 🛠️ Technologies
+# 🌍 Distribution Shift
 
-- Python
-- TensorFlow
-- Keras
-- NumPy
-- SciPy
-- Matplotlib
-- Jupyter Notebook
+The custom-image experiment highlights an important real-world machine learning concept: **distribution shift**.
 
-## 📁 Project Structure
+A model can perform well on a benchmark test set but behave differently on personally captured images.
+
+Factors that can affect predictions include:
+
+- Lighting conditions
+- Image composition
+- Camera characteristics
+- Background
+- Image shape
+- Preprocessing
+- Differences between the training and real-world data distributions
+
+This is an important lesson when moving from controlled datasets to real-world computer vision applications.
+
+---
+
+# 💡 What I Learned
+
+This project helped me understand residual networks from the inside rather than simply using an existing ResNet implementation.
+
+### Key lessons
+
+- Why very deep plain networks can be difficult to train.
+- How vanishing gradients affect deep neural networks.
+- How skip connections provide an alternative path for information.
+- How residual blocks can learn identity mappings.
+- The difference between identity and convolutional blocks.
+- How `1 × 1` convolutions can change channel dimensions.
+- How strides can reduce spatial dimensions.
+- How Batch Normalization is integrated into residual blocks.
+- How the Keras Functional API represents branching architectures.
+- How multiple residual blocks are assembled into ResNet-50.
+- Why training accuracy and test accuracy can differ.
+- Why distribution shift matters when deploying computer vision models outside their training environment.
+
+---
+
+# 📁 Project Structure
 
 ```text
 resnet50-image-classification/
@@ -294,6 +485,7 @@ resnet50-image-classification/
 ├── datasets/
 ├── images/
 ├── models/
+│
 ├── .ipynb_checkpoints/
 ├── __pycache__/
 │
@@ -307,9 +499,9 @@ resnet50-image-classification/
 └── LICENSE
 ```
 
-> Generated/cache directories and model files are excluded from Git tracking according to the project's `.gitignore`.
+### Important Notes
 
-The repository's `.gitignore` includes:
+The repository `.gitignore` excludes generated files, model artifacts, and operating-system files:
 
 ```text
 .ipynb_checkpoints/
@@ -319,106 +511,112 @@ resnet50.h5
 Thumbs.db
 ```
 
-## 🚀 Getting Started
+This keeps large/generated files from being unnecessarily tracked by Git.
 
-### 1. Clone the repository
+---
+
+# 🛠️ Technologies
+
+- **Python**
+- **TensorFlow**
+- **Keras**
+- **NumPy**
+- **SciPy**
+- **Matplotlib**
+- **Jupyter Notebook**
+
+---
+
+# 🚀 Getting Started
+
+## 1. Clone the Repository
 
 ```bash
 git clone <YOUR_GITHUB_REPOSITORY_URL>
 cd resnet50-image-classification
 ```
 
-### 2. Install dependencies
+## 2. Install Dependencies
 
-Install the main packages used by the notebook:
+The notebook uses TensorFlow, NumPy, SciPy, Matplotlib, and Jupyter.
 
 ```bash
 pip install tensorflow numpy scipy matplotlib jupyter
 ```
 
-### 3. Launch Jupyter
+## 3. Launch Jupyter Notebook
 
 ```bash
 jupyter notebook
 ```
 
-Open:
+Then open:
 
 ```text
 Residual_Networks.ipynb
 ```
 
-### 4. Run the notebook
+## 4. Run the Notebook
 
 Run the notebook from top to bottom to:
 
-- explore the vanishing-gradient problem,
+- explore the problem of very deep neural networks,
+- understand residual connections,
 - implement the identity block,
 - implement the convolutional block,
 - construct ResNet-50,
-- train the network,
-- evaluate it on the test set,
-- and optionally test a custom image.
+- load and preprocess the SIGNS dataset,
+- train the model,
+- evaluate its performance,
+- and optionally test custom images.
 
-## 📚 What I Learned
+---
 
-This project helped me move beyond simply using a CNN and understand how a deep residual architecture is constructed internally.
+# 📖 References
 
-Key lessons include:
+This project is based on the Residual Network architecture introduced by He et al.
 
-- Why increasing network depth can make optimization harder.
-- How skip connections help deep networks learn effectively.
-- The difference between identity and convolutional residual blocks.
-- How 1×1 convolutions can control channel dimensions.
-- How stride changes spatial dimensions.
-- How Batch Normalization fits into residual blocks.
-- How the Keras Functional API can represent branching architectures.
-- How a large training accuracy does not necessarily guarantee equivalent performance on images from a different distribution.
+### Paper
 
-## 🌍 Real-World Consideration: Distribution Shift
+**Kaiming He, Xiangyu Zhang, Shaoqing Ren, Jian Sun.**
 
-One of the most useful lessons from the project is that benchmark performance is not the whole story.
+*Deep Residual Learning for Image Recognition* (2015).
 
-The notebook demonstrates that a model trained and evaluated on one image distribution can behave differently on personally captured images because of differences in:
+The notebook also follows the implementation structure and takes significant inspiration from François Chollet's deep-learning-models repository.
 
-- lighting,
-- image composition,
-- image shape,
-- preprocessing,
-- and overall data distribution.
-
-This is an important consideration when moving from a controlled dataset to real-world computer vision applications.
-
-## 📖 References
-
-This project is based on the Residual Network architecture introduced in:
-
-**Kaiming He, Xiangyu Zhang, Shaoqing Ren, Jian Sun.**  
-*Deep Residual Learning for Image Recognition*, 2015.
-
-The notebook also acknowledges the implementation structure and reference code from **François Chollet's** deep-learning-models repository.
+### Learning Inspiration
 
 This project was also part of my learning journey inspired and guided by the educational work of **Professor Andrew Ng**.
 
-## 🙏 Acknowledgments
+---
 
-A special thanks to **Professor Andrew Ng** and the **DeepLearning.AI** team for their educational resources and deep learning curriculum.
-
-Their teaching has been an important part of my journey toward understanding neural networks and computer vision.
-
-## 🤝 Contributing
+# 🤝 Contributing
 
 This repository is primarily a learning project, but suggestions, improvements, and discussions are welcome.
 
-If you notice an issue or have an idea for improving the implementation or documentation, feel free to open an issue or submit a pull request.
+If you find an issue or have an idea for improving the implementation or documentation, feel free to open an issue or submit a pull request.
 
-## 👤 Author
+---
+
+# 👤 Author
 
 **Qais Al-Tloa**
 
 - 📧 [Email](mailto:qaisaltloa1@gmail.com)
 - 🔗 [LinkedIn](https://www.linkedin.com/in/qais-al-tloa-911427330/)
 
-## 📄 License
+---
+
+# 🙏 Acknowledgments
+
+A special thank you to **Professor Andrew Ng** and the **DeepLearning.AI** team.
+
+Your educational resources continue to be an important part of my deep learning journey.
+
+I also acknowledge the original authors of the ResNet architecture and the reference implementation that helped shape this project.
+
+---
+
+# 📄 License
 
 A `LICENSE` file is included in the repository. Please refer to that file for the exact license terms.
